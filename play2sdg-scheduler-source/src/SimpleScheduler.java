@@ -33,13 +33,13 @@ public class SimpleScheduler {
 				//System.out.println("To send serving: "+ tosend);
 				for(int t = 0; t <= tosend ; t++){
 					SimpleScheduler.ServeQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
-				//	if(!violatedSLO){
-				//		SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
-//					}
-//					else{
-//						System.out.println("Serving SLO violation!");
-//						continue;
-//					}
+					if(!violatedSLO){
+						SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
+					}
+					else{
+					//	System.out.println("Serving SLO violation!");
+						continue;
+					}
 				}
 				
 				
