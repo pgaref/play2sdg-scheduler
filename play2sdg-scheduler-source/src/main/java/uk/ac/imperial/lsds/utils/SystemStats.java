@@ -84,16 +84,21 @@ public class SystemStats {
 		System.out.println(" #################### ");
 
 	}
-
-	public static void main(String[] args) throws InterruptedException {
-		SystemStats s = new SystemStats();
-		while(true){
-			s.measureAll();
-			s.printAll();
-			Thread.sleep(2000);
-		}
-	}
+/*
+ * 
+ * Only for testing
+ * 
+ */
 	
+//	public static void main(String[] args) throws InterruptedException {
+//		SystemStats s = new SystemStats();
+//		while(true){
+//			s.measureAll();
+//			s.printAll();
+//			Thread.sleep(2000);
+//		}
+//	}
+//	
 
 	/**
 	 * @return the osName

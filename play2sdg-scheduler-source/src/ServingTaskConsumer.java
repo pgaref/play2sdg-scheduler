@@ -1,10 +1,14 @@
 import java.io.FileWriter;
 import java.io.IOException;
 
+import main.java.uk.ac.imperial.lsds.utils.SystemStats;
+
 
 public class ServingTaskConsumer implements Runnable{
 
-	private static String filename = "latency.dat";
+	private static SystemStats s = new SystemStats();
+	
+	private static String filename = "serving-stats.dat";
 	private static int count = 0;
 	private static FileWriter fw = null;
 	private static final int SCALE = 10000;  
@@ -50,7 +54,7 @@ public class ServingTaskConsumer implements Runnable{
 		while(true){
 			try {
 				 got = SimpleScheduler.ServeQueue.take();
-				 ServingTaskConsumer.pi_digits(1);
+				 ServingTaskConsumer.pi_digits(5);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -62,8 +66,11 @@ public class ServingTaskConsumer implements Runnable{
 					SimpleScheduler.violatedSLO = true;
 				if(latency < 25 )
 					SimpleScheduler.violatedSLO = false;
+				
+				s.measureAll();
+				System.out.println("Load: "+ s.getSystemLoadAverage()  + " Used Memory: "  + (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100));
 				try {
-					fw.write(count++ + " " + got.taskSent + " " + latency +"\n");// appends the string
+					fw.write(count++ + " " + got.taskSent + " "  + latency + " "+  s.getSystemLoadAverage() + " "+ (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100)+  "\n");// appends the string
 															// to the file
 					fw.flush();
 				} catch (IOException ioe) {

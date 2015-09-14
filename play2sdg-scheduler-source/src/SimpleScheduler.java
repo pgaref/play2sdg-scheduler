@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 public class SimpleScheduler {
 		
 	public static BlockingQueue<QueueObject> ServeQueue = new ArrayBlockingQueue<>(10000);
-	public static BlockingQueue<QueueObject> AnalyticsQueue = new ArrayBlockingQueue<>(1000000);
+	public static BlockingQueue<QueueObject> AnalyticsQueue = new ArrayBlockingQueue<>(100000000);
 	
 	public static boolean violatedSLO = false;
 	
@@ -33,13 +33,13 @@ public class SimpleScheduler {
 				//System.out.println("To send serving: "+ tosend);
 				for(int t = 0; t <= tosend ; t++){
 					SimpleScheduler.ServeQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
-					if(!violatedSLO){
-						SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
-					}
-					else{
-						//System.out.println("Serving SLO violation!");
-						continue;
-					}
+				//	if(!violatedSLO){
+				//		SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
+//					}
+//					else{
+//						System.out.println("Serving SLO violation!");
+//						continue;
+//					}
 				}
 				
 				
