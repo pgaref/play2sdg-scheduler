@@ -64,7 +64,7 @@ public class ServingTaskConsumer implements Runnable{
 				long latency =(System.currentTimeMillis() - got.startTime);
 				if(latency > 15 )
 					SimpleScheduler.violatedSLO = true;
-				if(latency < 10 )
+				if(latency < 12 )
 					SimpleScheduler.violatedSLO = false;
 				
 				s.measureAll();
