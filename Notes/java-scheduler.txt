@@ -1,0 +1,23 @@
+https://anturis.com/blog/java-virtual-machine-the-essential-guide/
+
+Most applications (especially servers) require concurrent execution, handling a number of tasks. Some of these tasks are more important at a given moment, while others are background tasks that can be executed whenever the CPU is not busy doing anything else. Tasks are executed in different threads. For example, a server may have a low-priority thread that calculates statistics based on some data and starts a higher-priority thread to handle incoming data, and another higher-priority thread to serve a request for some of the data that was calculated. There can be many sources of data, and many clients requesting data from the server. Each request will briefly stop the execution of the background calculation thread to serve the request. So you have to monitor the number of threads that are running and make sure there is enough CPU time for the thread that is making the necessary calculations.
+
+
+=>Non-preemptive Scheduling
+
+Non-preemptive multitasking or cooperative multitasking is a style of computer multitasking in which the operating system never initiates a context switch from a running process to another process. Instead, processes voluntarily stop their operation periodically in order to enable multiple applications to be run simultaneously. This type of multitasking is called "cooperative" because all programs must cooperate for the entire scheduling scheme to work. In this scheme, the process scheduler of an operating system is known as cooperative scheduler, having its role reduced down to starting the processes and letting them return control back to it voluntarily.[1][2]
+
+Although it is rarely used in modern larger systems except for specific applications such as CICS or the JES2 subsystem, non-preemptive multitasking was the scheduling scheme for 16-bit applications employed by Microsoft Windows before Windows 95 and Windows NT, and by Mac OS before OS X. Windows 9x used non-preemptive multitasking for 16-bit legacy applications, as the PowerPC versions of Mac OS X prior to Leopard used it for classic applications.[1] NetWare, which is a network-oriented operating system, used non-preemptive multitasking up to NetWare 6.5. Non-preemptive multitasking is still used on RISC OS systems.[3]
+
+As a non-preemptively multitasked system relies on each process regularly giving up time to other processes on the system, one poorly designed program can consume all of the CPU time for itself, either by performing extensive calculations or by busy waiting; both would cause the whole system to hang. In a server environment, this is a hazard that makes the entire environment unacceptably fragile.[1] However, non-preemptive multitasking allows much simpler implementation of applications because their execution is never unexpectedly interrupted by the process scheduled; for example, various functions inside the application do not need to be reentrant.
+
+In contrast, preemptive multitasking interrupts applications and gives control to other processes outside of the application's control.
+
+
+=>Pre-emptive Scheduling
+
+Fixed-priority preemptive scheduling is a scheduling system commonly used in real-time systems. With fixed priority preemptive scheduling, the scheduler ensures that at any given time, the processor executes the highest priority task of all those tasks that are currently ready to execute.
+
+The preemptive scheduler has a clock interrupt task that can provide the scheduler with options to switch after the task has had a given period to execute—the time slice. This scheduling system has the advantage of making sure no task hogs the processor for any time longer than the time slice. However, this scheduling scheme is vulnerable to process or thread lockout: since priority is given to higher-priority tasks, the lower-priority tasks could wait an indefinite amount of time. One common method of arbitrating this situation is aging, which gradually increments the priority of waiting processes and threads, ensuring that they will all eventually execute. Most Real-time operating systems (RTOSs) have preemptive schedulers. Also turning off time slicing effectively gives you the non-preemptive RTOS.
+
+Preemptive scheduling is often differentiated with cooperative scheduling, in which a task can run continuously from start to end without being preempted by other tasks. To have a task switch, the task must explicitly call the scheduler. Cooperative scheduling is used in a few RTOS such as Salvo or TinyOS.
