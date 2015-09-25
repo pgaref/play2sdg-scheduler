@@ -12,6 +12,7 @@ public class SimpleScheduler {
 	public static BlockingQueue<QueueObject> AnalyticsQueue = new ArrayBlockingQueue<>(100000000);
 	
 	public static boolean violatedSLO = false;
+	public static boolean policyEnabled = true;
 	
 	
 	public static void main(String[] args) {
@@ -26,19 +27,25 @@ public class SimpleScheduler {
 	    
 	    double i = 0;
 	    while(true) {
-	    	double radians = Math.PI/2499 * i;
+	    	double radians = Math.PI/2500 * i;
 	    	//System.out.format("The sine of %.1f radians is %.4f%n", radians, Math.abs( Math.sin(radians) ));
 			try {
 				int tosend = (int) (Math.abs( Math.sin(radians) ) * 10000);
 				//System.out.println("To send serving: "+ tosend);
 				for(int t = 0; t <= tosend ; t++){
 					SimpleScheduler.ServeQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
-					if(!violatedSLO){
+					
+					if(!policyEnabled){
 						SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
 					}
 					else{
-					//	System.out.println("Serving SLO violation!");
-						continue;
+						if(!violatedSLO){
+							SimpleScheduler.AnalyticsQueue.put(new QueueObject(tosend, System.currentTimeMillis()));
+						}
+						else{
+							//System.out.println("Serving SLO violation!");
+							continue;
+						}
 					}
 				}
 				

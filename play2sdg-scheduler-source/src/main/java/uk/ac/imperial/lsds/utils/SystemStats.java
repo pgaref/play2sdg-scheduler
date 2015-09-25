@@ -4,6 +4,10 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.hyperic.sigar.CpuPerc;
+import org.hyperic.sigar.Sigar;
+import org.hyperic.sigar.SigarException;
+
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.hardware.Processor;
@@ -12,66 +16,79 @@ import oshi.util.FormatUtil;
 
 public class SystemStats {
 
+	private static Sigar sigar;
+	private static SystemInfo si;
 	
-	private SystemInfo si;
 	private String osName;
 	private HardwareAbstractionLayer hal;
 	
-	private int cpuNumber;
 	private String cpuVendor;
 	private int cpuCores;
 	private long cpuFreq;
-	
 	private ArrayList<HashMap<String, Long>> ProcessorTimes;
-	
 	private long memAvailable;
 	private long memTotal;
-	
-	private double systemLoad;
+	private double systemCPULoad;
+	private double cpuUtilisation;
 	private double systemLoadAverage;
 	
 	
 	public SystemStats() {
-		this.si = new SystemInfo();
+		
+		SystemStats.sigar = new Sigar();
+		SystemStats.si = new SystemInfo();
+
 		OperatingSystem os = si.getOperatingSystem();
 		this.osName = os.toString();
-		hal = si.getHardware();
+		this.hal = si.getHardware();
+		this.cpuCores = hal.getProcessors().length;
+		this.memTotal = hal.getMemory().getTotal();
+		
 		measureAll();
 	}
 	
 	public void measureAll(){
-			
 		
-		this.cpuNumber = hal.getProcessors().length;
-		this.ProcessorTimes = new ArrayList<HashMap<String, Long>>(this.cpuNumber);
-		
+		this.ProcessorTimes = new ArrayList<HashMap<String, Long>>(this.cpuCores);
 		this.memAvailable =  hal.getMemory().getAvailable();
-		this.memTotal = hal.getMemory().getTotal();
 		
-		for (Processor cpu : hal.getProcessors()) {
-			HashMap<String, Long> currMeasure = new HashMap<String, Long>();
-			currMeasure.put("Load", (long) cpu.getLoad());	
-			currMeasure.put("User", cpu.getProcessorCpuLoadTicks()[0]);	
-			currMeasure.put("Nice", cpu.getProcessorCpuLoadTicks()[1]);
-			currMeasure.put("System", cpu.getProcessorCpuLoadTicks()[2]);
-			currMeasure.put("Idle", cpu.getProcessorCpuLoadTicks()[3]);
-			this.ProcessorTimes.add(currMeasure);
-			
-			this.systemLoad = cpu.getSystemCpuLoad();
-			this.systemLoadAverage  = cpu.getSystemLoadAverage();
-			this.cpuVendor = cpu.getVendor();
-			this.cpuFreq = cpu.getVendorFreq();
-		}
+		CpuPerc cpuperc = null;
+	    try {
+	        cpuperc = sigar.getCpuPerc();
+	        this.cpuUtilisation = cpuperc.getCombined();
+	    } catch (SigarException se) {
+	        se.printStackTrace();
+	    }
+		
+/*
+ * Not currently needed		
+ */
+	    
+//		for (Processor cpu : hal.getProcessors()) {
+//			HashMap<String, Long> currMeasure = new HashMap<String, Long>(5);
+//			currMeasure.put("Load", (long) cpu.getLoad());	
+//			currMeasure.put("User", cpu.getProcessorCpuLoadTicks()[0]);	
+//			currMeasure.put("Nice", cpu.getProcessorCpuLoadTicks()[1]);
+//			currMeasure.put("System", cpu.getProcessorCpuLoadTicks()[2]);
+//			currMeasure.put("Idle", cpu.getProcessorCpuLoadTicks()[3]);
+//			this.ProcessorTimes.add(currMeasure);
+//			
+//			this.systemCPULoad = cpu.getSystemCpuLoad();
+//			this.systemLoadAverage  = cpu.getSystemLoadAverage();
+//			this.cpuVendor = cpu.getVendor();
+//			this.cpuFreq = cpu.getVendorFreq();
+//		}
 		
 	}
 	public void printAll(){
 		System.out.println(" #################### ");
 		
 		System.out.println("OS: "+ this.osName);
-		System.out.println(this.cpuNumber + " Cores at  "+  (double)(this.cpuFreq/1000000000) + " Ghz from  " + this.cpuVendor );
+		System.out.println(this.cpuCores + " Cores at  "+  (double)(this.cpuFreq/1000000000) + " Ghz from  " + this.cpuVendor );
 		System.out.println( FormatUtil.formatBytes(this.memTotal) +" Memory in total "  + FormatUtil.formatBytes(this.memAvailable) +" Memory available" ); 
 		
-		System.out.println("System load: "+ this.systemLoad + " load avg "+ this.systemLoadAverage);
+		System.out.println("System CPU load: "+ this.systemCPULoad + " load avg "+ this.systemLoadAverage);
+		double total_cpu_load = 0;
 		System.out.println("Explicit core load: ");
 		for(HashMap<String, Long> meas : this.ProcessorTimes){
 			System.out.println("->"+ meas.toString());
@@ -79,11 +96,18 @@ public class SystemStats {
 			double usage = (((double)(total-meas.get("Idle")))/total)*100 ;
 			DecimalFormat df = new DecimalFormat("###.00");
 			System.out.println("Usage = " + df.format(usage) + " %");
+			total_cpu_load += usage;
 		}
-		
+
+	    DecimalFormat df = new DecimalFormat("00.00");
+		System.out.println("## cpu load: " + (total_cpu_load/this.cpuCores) );
+		System.out.println("## cpu util: " + df.format(this.cpuUtilisation*100));
 		System.out.println(" #################### ");
 
 	}
+	
+
+	
 /*
  * 
  * Only for testing
@@ -91,14 +115,17 @@ public class SystemStats {
  */
 	
 //	public static void main(String[] args) throws InterruptedException {
+//		
 //		SystemStats s = new SystemStats();
-//		while(true){
+//		while (true) {
+//			
 //			s.measureAll();
 //			s.printAll();
 //			Thread.sleep(2000);
+//			
 //		}
 //	}
-//	
+////	
 
 	/**
 	 * @return the osName
@@ -114,19 +141,6 @@ public class SystemStats {
 		this.osName = osName;
 	}
 
-	/**
-	 * @return the cpuNumber
-	 */
-	public int getCpuNumber() {
-		return cpuNumber;
-	}
-
-	/**
-	 * @param cpuNumber the cpuNumber to set
-	 */
-	public void setCpuNumber(int cpuNumber) {
-		this.cpuNumber = cpuNumber;
-	}
 
 	/**
 	 * @return the cpuVendor
@@ -202,15 +216,15 @@ public class SystemStats {
 	/**
 	 * @return the systemLoad
 	 */
-	public double getSystemLoad() {
-		return systemLoad;
+	public double getSystemCPULoad() {
+		return systemCPULoad;
 	}
 
 	/**
 	 * @param systemLoad the systemLoad to set
 	 */
-	public void setSystemLoad(double systemLoad) {
-		this.systemLoad = systemLoad;
+	public void setSystemCPULoad(double systemLoad) {
+		this.systemCPULoad = systemLoad;
 	}
 
 	/**
@@ -239,6 +253,20 @@ public class SystemStats {
 	 */
 	public void setProcessorTimes(ArrayList<HashMap<String, Long>> processorTimes) {
 		ProcessorTimes = processorTimes;
+	}
+
+	/**
+	 * @return the cpuUtilisation
+	 */
+	public double getCpuUtilisation() {
+		return cpuUtilisation;
+	}
+
+	/**
+	 * @param cpuUtilisation the cpuUtilisation to set
+	 */
+	public void setCpuUtilisation(double cpuUtilisation) {
+		this.cpuUtilisation = cpuUtilisation;
 	}
 
 

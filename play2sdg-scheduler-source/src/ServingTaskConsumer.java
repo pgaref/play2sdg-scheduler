@@ -1,5 +1,8 @@
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import main.java.uk.ac.imperial.lsds.utils.SystemStats;
 
@@ -40,6 +43,8 @@ public class ServingTaskConsumer implements Runnable{
 	int reportInterval = 1000; //ms
 	int events = 0;
 	
+	ArrayList<Long> latencyPercentile = new ArrayList<Long>();
+	
 	@Override
 	public void run() {
 		
@@ -50,6 +55,7 @@ public class ServingTaskConsumer implements Runnable{
 		    System.err.println("IOException: " + ioe.getMessage());
 		}
 		
+		DecimalFormat df = new DecimalFormat("###.00");
 		QueueObject got = null;
 		while(true){
 			try {
@@ -60,24 +66,37 @@ public class ServingTaskConsumer implements Runnable{
 				e.printStackTrace();
 			}
 			events++;
+			long currlatency =( System.currentTimeMillis() - got.startTime );
+			latencyPercentile.add( currlatency );
+			
 			if(System.currentTimeMillis() - refTime > reportInterval) {
-				long latency =(System.currentTimeMillis() - got.startTime);
-				if(latency > 15 )
-					SimpleScheduler.violatedSLO = true;
-				if(latency < 12 )
-					SimpleScheduler.violatedSLO = false;
 				
-				s.measureAll();
-				System.out.println("Load: "+ s.getSystemLoadAverage()  + " Used Memory: "  + (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100));
+				Collections.sort(latencyPercentile);
+				
+				if(SimpleScheduler.policyEnabled){
+					if (latencyPercentile
+							.get(latencyPercentile.size() * 99 / 100) > 100)
+						SimpleScheduler.violatedSLO = true;
+					else if (SimpleScheduler.violatedSLO
+							&& (latencyPercentile
+									.get(latencyPercentile.size() * 99 / 100) < 20))
+						SimpleScheduler.violatedSLO = false;
+				}
+				
+				s.measureAll();				
+				System.out.println("Count: "+ count +" Cpu Util : "+ df.format(s.getCpuUtilisation()*100)  + " Used Memory: "  + (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100));
+				
 				try {
-					fw.write(count++ + " " + got.taskSent + " "  + latency + " "+  s.getSystemLoadAverage() + " "+ (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100)+  "\n");// appends the string
+					fw.write(count++ + " " + got.taskSent + " "  + latencyPercentile.get(latencyPercentile.size()*90/100) + " "+ latencyPercentile.get(latencyPercentile.size()*99/100) + " "+ df.format(s.getCpuUtilisation()*100)  + " "+ (100 - ((double)s.getMemAvailable()/(double)s.getMemTotal())*100)+  "\n");// appends the string
 															// to the file
 					fw.flush();
 				} catch (IOException ioe) {
 					System.err.println("IOException: " + ioe.getMessage());
 				}
-				System.out.println("S: queue size:"+ SimpleScheduler.ServeQueue.remainingCapacity() + " e/s: "+events + " proc latency: "+ latency + " ms  \t\t " +got.taskSent/1000 + "k sin");
+				System.out.println("S: Q size:"+ SimpleScheduler.ServeQueue.remainingCapacity() + " e/s: "+events + " 90th latency: "+ latencyPercentile.get(latencyPercentile.size()*90/100) + " 99th latency: "+ latencyPercentile.get(latencyPercentile.size()*99/100) +" ms  \t\t " +got.taskSent/1000 + "k sin");
+				
 				events = 0;
+				latencyPercentile = new ArrayList<Long>();
 				refTime = System.currentTimeMillis();
 			}
 		}

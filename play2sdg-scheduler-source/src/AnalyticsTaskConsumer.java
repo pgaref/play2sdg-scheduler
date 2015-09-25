@@ -1,5 +1,6 @@
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 
 public class AnalyticsTaskConsumer implements Runnable {
 
@@ -45,16 +46,21 @@ public class AnalyticsTaskConsumer implements Runnable {
 		    System.err.println("IOException: " + ioe.getMessage());
 		}
 		
+		DecimalFormat df = new DecimalFormat("###.00");
 		QueueObject got = null;
 		while (true) {
-			try {
-				got = SimpleScheduler.AnalyticsQueue.take();
-				AnalyticsTaskConsumer.pi_digits(20);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if ( !SimpleScheduler.policyEnabled || (SimpleScheduler.policyEnabled && !SimpleScheduler.violatedSLO) ) {
+				try {
+					got = SimpleScheduler.AnalyticsQueue.take();
+					AnalyticsTaskConsumer.pi_digits(50);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				events++;
 			}
-			events++;
+			
 			if (System.currentTimeMillis() - refTime > reportInterval) {
 				
 				try {
@@ -65,9 +71,9 @@ public class AnalyticsTaskConsumer implements Runnable {
 					System.err.println("IOException: " + ioe.getMessage());
 				}
 				
-				System.out.println("A: queue size:"
+				System.out.println("A: Q size:"
 						+ SimpleScheduler.AnalyticsQueue.remainingCapacity()
-						+ " e/s: " + events + " proc latency: "
+						+ " e/s: " + events + " latency: "
 						+ (System.currentTimeMillis() - got.startTime) + " ms");
 				events = 0;
 				refTime = System.currentTimeMillis();
